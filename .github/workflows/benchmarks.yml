@@ -77,7 +77,7 @@ jobs:
           cat target/criterion/comparison/report/index.html >> comparison.md
       
       - name: Upload comparison report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: benchmark-comparison
           path: comparison.md
