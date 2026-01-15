@@ -13,11 +13,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Detect benchmarks
+        id: detect
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find . -type f -path '*/benches/*.rs' -print -quit | grep -q .; then
+            echo "has_benches=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_benches=false" >> "$GITHUB_OUTPUT"
+            echo "No benches found; skipping benchmark job steps."
+          fi
       
       - name: Install Rust toolchain
+        if: ${{ steps.detect.outputs.has_benches == 'true' }}
         uses: dtolnay/rust-toolchain@stable
       
       - name: Cache cargo
+        if: ${{ steps.detect.outputs.has_benches == 'true' }}
         uses: actions/cache@v4
         with:
           path: |
@@ -27,9 +41,11 @@ jobs:
           key: ${{ runner.os }}-cargo-bench-${{ hashFiles('**/Cargo.lock') }}
       
       - name: Run benchmarks
+        if: ${{ steps.detect.outputs.has_benches == 'true' }}
         run: cargo bench --workspace -- --output-format bencher | tee output.txt
       
       - name: Store benchmark result
+        if: ${{ steps.detect.outputs.has_benches == 'true' }}
         uses: benchmark-action/github-action-benchmark@v1
         with:
           tool: 'cargo'
@@ -64,19 +80,35 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
+
+      - name: Detect comparison benchmark
+        id: detect
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find . -type f -path '*/benches/comparison.rs' -print -quit | grep -q .; then
+            echo "has_comparison=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_comparison=false" >> "$GITHUB_OUTPUT"
+            echo "No comparison bench found; skipping comparative benchmark steps."
+          fi
       
       - name: Install Rust toolchain
+        if: ${{ steps.detect.outputs.has_comparison == 'true' }}
         uses: dtolnay/rust-toolchain@stable
       
       - name: Run comparative benchmarks
+        if: ${{ steps.detect.outputs.has_comparison == 'true' }}
         run: cargo bench --workspace --bench comparison
       
       - name: Generate comparison report
+        if: ${{ steps.detect.outputs.has_comparison == 'true' }}
         run: |
           echo "# Benchmark Comparison Results" > comparison.md
           cat target/criterion/comparison/report/index.html >> comparison.md
       
       - name: Upload comparison report
+        if: ${{ steps.detect.outputs.has_comparison == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: benchmark-comparison

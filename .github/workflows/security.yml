@@ -87,6 +87,7 @@ jobs:
         run: |
           set -euo pipefail
           for manifest in cli/Cargo.toml database/Cargo.toml format/Cargo.toml; do
-            echo "## cargo-geiger: ${manifest}"
-            cargo geiger --manifest-path "${manifest}" --output-format GitHubMarkdown
+            manifest_abs="$(pwd)/${manifest}"
+            echo "## cargo-geiger: ${manifest_abs}"
+            cargo geiger --manifest-path "${manifest_abs}" --output-format GitHubMarkdown
           done
