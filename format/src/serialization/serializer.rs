@@ -6,7 +6,7 @@ use crate::{constants, Token};
 use super::encoder::encode_value;
 use super::writer::ByteWriter;
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq, Eq)]
 pub enum SerializeError {
     #[error("payload length does not fit in u32")]
     LengthOverflow,
