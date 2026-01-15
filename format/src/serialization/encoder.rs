@@ -43,27 +43,40 @@ pub fn encode_value(value: &Value) -> Result<EncodedValue, SerializeError> {
             payload: s.as_bytes().to_vec(),
         }),
         Value::Array(items) => {
-            let mut payload = Vec::new();
-            payload.extend_from_slice(&(items.len() as u32).to_le_bytes());
+            let mut encoded_items = Vec::with_capacity(items.len());
+            let mut payload_len = 4usize;
 
             for item in items {
                 let encoded = encode_value(item)?;
-                let len_u32 = u32::try_from(encoded.payload.len())
+                let item_len_u32 = u32::try_from(encoded.payload.len())
                     .map_err(|_| SerializeError::LengthOverflow)?;
 
-                payload.push(encoded.type_marker);
-                payload.extend_from_slice(&len_u32.to_le_bytes());
-                payload.extend_from_slice(&encoded.payload);
+                payload_len = payload_len
+                    .checked_add(1 + 4 + item_len_u32 as usize)
+                    .ok_or(SerializeError::LengthOverflow)?;
+
+                encoded_items.push((encoded.type_marker, encoded.payload));
+            }
+
+            let mut payload = ByteWriter::with_capacity(payload_len);
+            payload.write_u32_le(items.len() as u32);
+
+            for (type_marker, item_payload) in encoded_items {
+                let item_len_u32 = u32::try_from(item_payload.len())
+                    .map_err(|_| SerializeError::LengthOverflow)?;
+                payload.write_u8(type_marker);
+                payload.write_u32_le(item_len_u32);
+                payload.write_bytes(&item_payload);
             }
 
             Ok(EncodedValue {
                 type_marker: constants::TYPE_ARRAY,
-                payload,
+                payload: payload.into_inner(),
             })
         }
         Value::Object(map) => {
-            let mut payload = Vec::new();
-            payload.extend_from_slice(&(map.len() as u32).to_le_bytes());
+            let mut entries = Vec::with_capacity(map.len());
+            let mut payload_len = 4usize;
 
             for (key, value) in map {
                 let key_bytes = key.as_bytes();
@@ -74,17 +87,32 @@ pub fn encode_value(value: &Value) -> Result<EncodedValue, SerializeError> {
                 let val_len_u32 = u32::try_from(encoded.payload.len())
                     .map_err(|_| SerializeError::LengthOverflow)?;
 
-                payload.extend_from_slice(&key_len_u32.to_le_bytes());
-                payload.extend_from_slice(key_bytes);
+                payload_len = payload_len
+                    .checked_add(4 + key_len_u32 as usize + 1 + 4 + val_len_u32 as usize)
+                    .ok_or(SerializeError::LengthOverflow)?;
 
-                payload.push(encoded.type_marker);
-                payload.extend_from_slice(&val_len_u32.to_le_bytes());
-                payload.extend_from_slice(&encoded.payload);
+                entries.push((key_bytes.to_vec(), encoded.type_marker, encoded.payload));
+            }
+
+            let mut payload = ByteWriter::with_capacity(payload_len);
+            payload.write_u32_le(map.len() as u32);
+
+            for (key_bytes, type_marker, val_payload) in entries {
+                let key_len_u32 = u32::try_from(key_bytes.len())
+                    .map_err(|_| SerializeError::LengthOverflow)?;
+                let val_len_u32 = u32::try_from(val_payload.len())
+                    .map_err(|_| SerializeError::LengthOverflow)?;
+
+                payload.write_u32_le(key_len_u32);
+                payload.write_bytes(&key_bytes);
+                payload.write_u8(type_marker);
+                payload.write_u32_le(val_len_u32);
+                payload.write_bytes(&val_payload);
             }
 
             Ok(EncodedValue {
                 type_marker: constants::TYPE_OBJECT,
-                payload,
+                payload: payload.into_inner(),
             })
         }
     }
