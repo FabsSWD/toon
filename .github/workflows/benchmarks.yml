@@ -7,6 +7,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   benchmark:
     name: Run Benchmarks
@@ -42,14 +45,74 @@ jobs:
       
       - name: Run benchmarks
         if: ${{ steps.detect.outputs.has_benches == 'true' }}
-        run: cargo bench --workspace -- --output-format bencher | tee output.txt
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo bench --workspace 2>&1 | tee output.txt
+
+      - name: Generate benchmark JSON (Criterion)
+        if: ${{ steps.detect.outputs.has_benches == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - << 'PY'
+          import glob
+          import json
+          import os
+
+          paths = sorted(glob.glob('target/criterion/*/new/estimates.json'))
+          results = []
+
+          for path in paths:
+              bench_name = os.path.basename(os.path.dirname(os.path.dirname(path)))
+              with open(path, 'r', encoding='utf-8') as f:
+                  data = json.load(f)
+
+              mean = data.get('mean', {})
+              point = mean.get('point_estimate')
+              if point is None:
+                  continue
+
+              entry = {
+                  'name': bench_name,
+                  'unit': 'ns',
+                  'value': point,
+              }
+
+              ci = mean.get('confidence_interval', {})
+              lb = ci.get('lower_bound')
+              ub = ci.get('upper_bound')
+              if lb is not None and ub is not None:
+                  entry['range'] = str(ub - lb)
+
+              results.append(entry)
+
+          with open('benchmark.json', 'w', encoding='utf-8') as f:
+              json.dump(results, f)
+
+          print(f"Wrote {len(results)} benchmarks to benchmark.json")
+          PY
+
+      - name: Detect benchmark results
+        id: results
+        if: ${{ steps.detect.outputs.has_benches == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -s benchmark.json ] && [ "$(cat benchmark.json)" != "[]" ]; then
+            echo "has_results=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_results=false" >> "$GITHUB_OUTPUT"
+            echo "No benchmark results found; skipping store step."
+          fi
       
       - name: Store benchmark result
-        if: ${{ steps.detect.outputs.has_benches == 'true' }}
+        if: ${{ steps.detect.outputs.has_benches == 'true' && steps.results.outputs.has_results == 'true' && github.event_name != 'pull_request' }}
         uses: benchmark-action/github-action-benchmark@v1
         with:
-          tool: 'cargo'
-          output-file-path: output.txt
+          name: strand criterion
+          tool: 'customSmallerIsBetter'
+          output-file-path: benchmark.json
           github-token: ${{ secrets.GITHUB_TOKEN }}
           auto-push: true
           # Show alert with commit comment on detecting possible performance regression
