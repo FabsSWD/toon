@@ -11,3 +11,4 @@ pub const TYPE_F64: u8 = 0x11;
 pub const TYPE_STRING: u8 = 0x20;
 pub const TYPE_ARRAY: u8 = 0x30;
 pub const TYPE_OBJECT: u8 = 0x31;
+pub const TYPE_REF: u8 = 0x40;

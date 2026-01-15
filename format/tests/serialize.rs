@@ -2,7 +2,7 @@ use crc32fast::Hasher;
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use toon_format::{constants, Metadata, Serializer, Token, TokenId, Value};
+use toon_format::{constants, Metadata, Serializer, Token, TokenId, TokenRef, TokenRefStrength, Value};
 
 fn crc32(bytes: &[u8]) -> u32 {
     let mut hasher = Hasher::new();
@@ -203,4 +203,38 @@ fn serialize_object_single_entry_layout_and_checksum() {
         u32::from_le_bytes(bytes[checksum_offset..].try_into().unwrap()),
         crc32(&bytes[..checksum_offset])
     );
+}
+
+#[test]
+fn serialize_ref_layout_and_checksum() {
+    let id = TokenId::from(Uuid::from_bytes([8u8; 16]));
+    let target = TokenId::from(Uuid::from_bytes([9u8; 16]));
+    let token = Token::new(id, Value::Ref(TokenRef::weak(target)), Metadata::new(0, 0));
+
+    let bytes = Serializer::new().serialize(&token).unwrap();
+
+    assert_eq!(bytes[0], constants::FORMAT_VERSION);
+    assert_eq!(&bytes[1..17], &id.as_bytes()[..]);
+    assert_eq!(bytes[17], constants::TYPE_REF);
+
+    let len = u32::from_le_bytes(bytes[18..22].try_into().unwrap());
+    assert_eq!(len, 17);
+
+    let strength = bytes[22];
+    assert_eq!(strength, 1u8);
+    assert_eq!(&bytes[23..39], &target.as_bytes()[..]);
+
+    let checksum_offset = bytes.len() - 4;
+    let expected = crc32(&bytes[..checksum_offset]);
+    let actual = u32::from_le_bytes(bytes[checksum_offset..].try_into().unwrap());
+    assert_eq!(actual, expected);
+
+    let decoded = toon_format::Deserializer::new(&bytes).deserialize().unwrap();
+    match decoded.value() {
+        Value::Ref(r) => {
+            assert_eq!(r.id(), target);
+            assert_eq!(r.strength(), TokenRefStrength::Weak);
+        }
+        _ => panic!("expected ref"),
+    }
 }

@@ -44,6 +44,9 @@ pub enum DeserializeError {
 
     #[error("trailing bytes in payload")]
     TrailingBytes,
+
+    #[error("invalid reference strength")]
+    InvalidReferenceStrength,
 }
 
 pub struct Deserializer<'a> {

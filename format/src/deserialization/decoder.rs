@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{constants, Value};
+use crate::{constants, TokenRef, TokenRefStrength, TokenId, Value};
 
 use super::deserializer::DeserializeError;
 use super::reader::ByteReader;
@@ -50,6 +50,25 @@ pub fn decode_value(type_marker: u8, payload: &[u8]) -> Result<Value, Deserializ
         constants::TYPE_STRING => {
             let s = std::str::from_utf8(payload).map_err(|_| DeserializeError::InvalidUtf8)?;
             Ok(Value::String(s.to_string()))
+        }
+        constants::TYPE_REF => {
+            if payload.len() != 17 {
+                return Err(DeserializeError::InvalidLength);
+            }
+            let strength = match payload[0] {
+                0 => TokenRefStrength::Strong,
+                1 => TokenRefStrength::Weak,
+                _ => return Err(DeserializeError::InvalidReferenceStrength),
+            };
+            let id_bytes: [u8; 16] = payload[1..17]
+                .try_into()
+                .map_err(|_| DeserializeError::InvalidLength)?;
+            let id = TokenId::from(uuid::Uuid::from_bytes(id_bytes));
+            let r = match strength {
+                TokenRefStrength::Strong => TokenRef::strong(id),
+                TokenRefStrength::Weak => TokenRef::weak(id),
+            };
+            Ok(Value::Ref(r))
         }
         constants::TYPE_ARRAY => decode_array(payload),
         constants::TYPE_OBJECT => decode_object(payload),

@@ -42,6 +42,20 @@ pub fn encode_value(value: &Value) -> Result<EncodedValue, SerializeError> {
             type_marker: constants::TYPE_STRING,
             payload: s.as_bytes().to_vec(),
         }),
+        Value::Ref(r) => {
+            let mut payload = ByteWriter::with_capacity(1 + 16);
+            let strength = match r.strength() {
+                crate::TokenRefStrength::Strong => 0u8,
+                crate::TokenRefStrength::Weak => 1u8,
+            };
+            payload.write_u8(strength);
+            payload.write_bytes(r.id().as_bytes());
+
+            Ok(EncodedValue {
+                type_marker: constants::TYPE_REF,
+                payload: payload.into_inner(),
+            })
+        }
         Value::Array(items) => {
             let mut encoded_items = Vec::with_capacity(items.len());
             let mut payload_len = 4usize;

@@ -13,10 +13,11 @@ fn type_markers_are_unique() {
         constants::TYPE_STRING,
         constants::TYPE_ARRAY,
         constants::TYPE_OBJECT,
+        constants::TYPE_REF,
     ];
 
     let set: HashSet<u8> = markers.into_iter().collect();
-    assert_eq!(set.len(), 8);
+    assert_eq!(set.len(), 9);
 }
 
 #[test]
@@ -36,4 +37,6 @@ fn type_markers_are_stable() {
 
     assert_eq!(constants::TYPE_ARRAY, 0x30);
     assert_eq!(constants::TYPE_OBJECT, 0x31);
+
+    assert_eq!(constants::TYPE_REF, 0x40);
 }
