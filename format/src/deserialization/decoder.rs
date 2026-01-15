@@ -29,14 +29,22 @@ pub fn decode_value(type_marker: u8, payload: &[u8]) -> Result<Value, Deserializ
             if payload.len() != 8 {
                 return Err(DeserializeError::InvalidLength);
             }
-            let v = i64::from_le_bytes(payload.try_into().map_err(|_| DeserializeError::InvalidLength)?);
+            let v = i64::from_le_bytes(
+                payload
+                    .try_into()
+                    .map_err(|_| DeserializeError::InvalidLength)?,
+            );
             Ok(Value::Int(v))
         }
         constants::TYPE_F64 => {
             if payload.len() != 8 {
                 return Err(DeserializeError::InvalidLength);
             }
-            let v = f64::from_le_bytes(payload.try_into().map_err(|_| DeserializeError::InvalidLength)?);
+            let v = f64::from_le_bytes(
+                payload
+                    .try_into()
+                    .map_err(|_| DeserializeError::InvalidLength)?,
+            );
             Ok(Value::Float(v))
         }
         constants::TYPE_STRING => {
@@ -51,17 +59,13 @@ pub fn decode_value(type_marker: u8, payload: &[u8]) -> Result<Value, Deserializ
 
 fn decode_array(payload: &[u8]) -> Result<Value, DeserializeError> {
     let mut reader = ByteReader::new(payload);
-    let count = reader
-        .read_u32_le()
-        .ok_or(DeserializeError::Truncated)? as usize;
+    let count = reader.read_u32_le().ok_or(DeserializeError::Truncated)? as usize;
 
     let mut items = Vec::with_capacity(count);
 
     for _ in 0..count {
         let type_marker = reader.read_u8().ok_or(DeserializeError::Truncated)?;
-        let len = reader
-            .read_u32_le()
-            .ok_or(DeserializeError::Truncated)? as usize;
+        let len = reader.read_u32_le().ok_or(DeserializeError::Truncated)? as usize;
         let item_payload = reader.read_bytes(len).ok_or(DeserializeError::Truncated)?;
         let value = decode_value(type_marker, item_payload)?;
         items.push(value);
@@ -76,26 +80,24 @@ fn decode_array(payload: &[u8]) -> Result<Value, DeserializeError> {
 
 fn decode_object(payload: &[u8]) -> Result<Value, DeserializeError> {
     let mut reader = ByteReader::new(payload);
-    let count = reader
-        .read_u32_le()
-        .ok_or(DeserializeError::Truncated)? as usize;
+    let count = reader.read_u32_le().ok_or(DeserializeError::Truncated)? as usize;
 
     let mut map = HashMap::with_capacity(count);
 
     for _ in 0..count {
-        let key_len = reader
-            .read_u32_le()
-            .ok_or(DeserializeError::Truncated)? as usize;
-        let key_bytes = reader.read_bytes(key_len).ok_or(DeserializeError::Truncated)?;
+        let key_len = reader.read_u32_le().ok_or(DeserializeError::Truncated)? as usize;
+        let key_bytes = reader
+            .read_bytes(key_len)
+            .ok_or(DeserializeError::Truncated)?;
         let key = std::str::from_utf8(key_bytes)
             .map_err(|_| DeserializeError::InvalidUtf8)?
             .to_string();
 
         let type_marker = reader.read_u8().ok_or(DeserializeError::Truncated)?;
-        let val_len = reader
-            .read_u32_le()
-            .ok_or(DeserializeError::Truncated)? as usize;
-        let val_payload = reader.read_bytes(val_len).ok_or(DeserializeError::Truncated)?;
+        let val_len = reader.read_u32_le().ok_or(DeserializeError::Truncated)? as usize;
+        let val_payload = reader
+            .read_bytes(val_len)
+            .ok_or(DeserializeError::Truncated)?;
         let value = decode_value(type_marker, val_payload)?;
 
         map.insert(key, value);

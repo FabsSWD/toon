@@ -98,9 +98,15 @@ fn layout_provides_payload_and_checksum_ranges() {
     let deser = Deserializer::new(&bytes);
     let layout = deser.layout().unwrap();
 
-    assert_eq!(layout.header.version, toon_format::constants::FORMAT_VERSION);
+    assert_eq!(
+        layout.header.version,
+        toon_format::constants::FORMAT_VERSION
+    );
     assert_eq!(layout.header.id, [14u8; 16]);
-    assert_eq!(layout.header.type_marker, toon_format::constants::TYPE_STRING);
+    assert_eq!(
+        layout.header.type_marker,
+        toon_format::constants::TYPE_STRING
+    );
 
     assert_eq!(layout.payload_range.start, 22);
     assert_eq!(layout.payload_range.end, bytes.len() - 4);

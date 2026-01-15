@@ -16,22 +16,17 @@ fn value_strategy() -> impl Strategy<Value = Value> {
             .prop_map(Value::String),
     ];
 
-    leaf.prop_recursive(
-        4,
-        64,
-        8,
-        |inner| {
-            prop_oneof![
-                proptest::collection::vec(inner.clone(), 0..8).prop_map(Value::Array),
-                proptest::collection::hash_map(
-                    proptest::string::string_regex(r"[a-zA-Z0-9_]{0,16}").unwrap(),
-                    inner,
-                    0..8,
-                )
-                .prop_map(Value::Object),
-            ]
-        },
-    )
+    leaf.prop_recursive(4, 64, 8, |inner| {
+        prop_oneof![
+            proptest::collection::vec(inner.clone(), 0..8).prop_map(Value::Array),
+            proptest::collection::hash_map(
+                proptest::string::string_regex(r"[a-zA-Z0-9_]{0,16}").unwrap(),
+                inner,
+                0..8,
+            )
+            .prop_map(Value::Object),
+        ]
+    })
 }
 
 proptest! {

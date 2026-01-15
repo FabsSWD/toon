@@ -80,8 +80,8 @@ pub fn encode_value(value: &Value) -> Result<EncodedValue, SerializeError> {
 
             for (key, value) in map {
                 let key_bytes = key.as_bytes();
-                let key_len_u32 = u32::try_from(key_bytes.len())
-                    .map_err(|_| SerializeError::LengthOverflow)?;
+                let key_len_u32 =
+                    u32::try_from(key_bytes.len()).map_err(|_| SerializeError::LengthOverflow)?;
 
                 let encoded = encode_value(value)?;
                 let val_len_u32 = u32::try_from(encoded.payload.len())
@@ -98,10 +98,10 @@ pub fn encode_value(value: &Value) -> Result<EncodedValue, SerializeError> {
             payload.write_u32_le(map.len() as u32);
 
             for (key_bytes, type_marker, val_payload) in entries {
-                let key_len_u32 = u32::try_from(key_bytes.len())
-                    .map_err(|_| SerializeError::LengthOverflow)?;
-                let val_len_u32 = u32::try_from(val_payload.len())
-                    .map_err(|_| SerializeError::LengthOverflow)?;
+                let key_len_u32 =
+                    u32::try_from(key_bytes.len()).map_err(|_| SerializeError::LengthOverflow)?;
+                let val_len_u32 =
+                    u32::try_from(val_payload.len()).map_err(|_| SerializeError::LengthOverflow)?;
 
                 payload.write_u32_le(key_len_u32);
                 payload.write_bytes(&key_bytes);

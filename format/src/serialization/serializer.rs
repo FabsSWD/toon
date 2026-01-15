@@ -14,6 +14,12 @@ pub enum SerializeError {
 
 pub struct Serializer;
 
+impl Default for Serializer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Serializer {
     pub fn new() -> Self {
         Self
@@ -21,8 +27,8 @@ impl Serializer {
 
     pub fn serialize(&self, token: &Token) -> Result<Vec<u8>, SerializeError> {
         let encoded = encode_value(token.value())?;
-        let payload_len_u32 = u32::try_from(encoded.payload.len())
-            .map_err(|_| SerializeError::LengthOverflow)?;
+        let payload_len_u32 =
+            u32::try_from(encoded.payload.len()).map_err(|_| SerializeError::LengthOverflow)?;
 
         let total_len = 1usize + 16 + 1 + 4 + encoded.payload.len() + 4;
         let mut writer = ByteWriter::with_capacity(total_len);

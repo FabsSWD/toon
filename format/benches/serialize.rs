@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::f64::consts::PI;
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use serde::Serialize;
@@ -40,7 +41,7 @@ fn build_sample_value() -> Value {
         "items".to_string(),
         Value::Array(vec![
             Value::Null,
-            Value::Float(3.141592653589793),
+            Value::Float(PI),
             Value::String("hello".to_string()),
             Value::Array(vec![Value::Int(-1), Value::Int(0), Value::Int(1)]),
         ]),
@@ -57,7 +58,7 @@ fn build_sample_bench_value() -> BenchValue {
         "items".to_string(),
         BenchValue::Array(vec![
             BenchValue::Null,
-            BenchValue::Float(3.141592653589793),
+            BenchValue::Float(PI),
             BenchValue::String("hello".to_string()),
             BenchValue::Array(vec![
                 BenchValue::Int(-1),
@@ -79,7 +80,7 @@ fn build_json_value() -> serde_json::Value {
         "name": "strand",
         "count": 123456,
         "enabled": true,
-        "items": [null, 3.141592653589793, "hello", [-1, 0, 1]]
+        "items": [null, PI, "hello", [-1, 0, 1]]
     })
 }
 
