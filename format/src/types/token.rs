@@ -36,7 +36,11 @@ pub struct Token {
 
 impl Token {
     pub fn new(id: TokenId, value: Value, metadata: Metadata) -> Self {
-        Self { id, value, metadata }
+        Self {
+            id,
+            value,
+            metadata,
+        }
     }
 
     pub fn id(&self) -> TokenId {

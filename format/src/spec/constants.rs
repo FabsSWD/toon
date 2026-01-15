@@ -1,7 +1,7 @@
 pub const FORMAT_VERSION: u8 = 1;
 
 pub fn is_supported_version(version: u8) -> bool {
-	version == FORMAT_VERSION
+    version == FORMAT_VERSION
 }
 pub const TYPE_NULL: u8 = 0x00;
 pub const TYPE_BOOL_FALSE: u8 = 0x01;

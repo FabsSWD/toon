@@ -81,7 +81,12 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
       
       - name: Install cargo-geiger
-        run: cargo install cargo-geiger
+        run: cargo install --locked cargo-geiger
       
       - name: Check unsafe usage
-        run: cargo geiger --output-format GitHubMarkdown
+        run: |
+          set -euo pipefail
+          for manifest in cli/Cargo.toml database/Cargo.toml format/Cargo.toml; do
+            echo "## cargo-geiger: ${manifest}"
+            cargo geiger --manifest-path "${manifest}" --output-format GitHubMarkdown
+          done
