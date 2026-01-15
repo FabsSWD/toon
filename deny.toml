@@ -6,12 +6,10 @@
 db-path = "~/.cargo/advisory-db"
 # The url(s) of the advisory databases to use
 db-urls = ["https://github.com/rustsec/advisory-db"]
-# Threshold for security vulnerabilities
-vulnerability = "deny"
 # Threshold for unmaintained crates
-unmaintained = "warn"
+unmaintained = "none"
 # Threshold for crates marked as insecure
-unsound = "deny"
+unsound = "all"
 # Threshold for yanked crates
 yanked = "deny"
 
